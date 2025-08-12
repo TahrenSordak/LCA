@@ -215,6 +215,39 @@
         
         // Component for the Calendar tab
         const CalendarSection = ({ currentSheet, updateCharacterSheet }) => {
+            const [reminder, setReminder] = React.useState('');
+            const [reminderDate, setReminderDate] = React.useState('');
+
+            const generateIcs = () => {
+                if (!reminder || !reminderDate) {
+                    alert('Please enter a reminder and a date.');
+                    return;
+                }
+
+                const event = {
+                    title: reminder,
+                    start: new Date(reminderDate),
+                };
+
+                const icsContent = [
+                    'BEGIN:VCALENDAR',
+                    'VERSION:2.0',
+                    'BEGIN:VEVENT',
+                    `UID:${new Date().getTime()}@dnd-companion.com`,
+                    `DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '')}`,
+                    `DTSTART:${event.start.toISOString().replace(/[-:.]/g, '')}`,
+                    `SUMMARY:${event.title}`,
+                    'END:VEVENT',
+                    'END:VCALENDAR',
+                ].join('\n');
+
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'reminder.ics';
+                link.click();
+            };
+
             return (
                 <div className="bg-gray-800 p-4 rounded-xl shadow-lg flex-1 h-96 flex flex-col">
                     <h2 className="text-xl font-bold mb-3">Calendar & Campaign Log</h2>
@@ -224,31 +257,57 @@
                         value={currentSheet.calendarNotes}
                         onChange={(e) => updateCharacterSheet('calendarNotes', e.target.value)}
                     ></textarea>
+                    <div className="mt-4">
+                        <h3 className="text-lg font-bold mb-2">Set a Reminder</h3>
+                        <input
+                            type="text"
+                            placeholder="Reminder message"
+                            value={reminder}
+                            onChange={(e) => setReminder(e.target.value)}
+                            className="w-full p-2 bg-gray-700 rounded-lg border-2 border-gray-600 focus:outline-none focus:border-blue-500"
+                        />
+                        <input
+                            type="datetime-local"
+                            value={reminderDate}
+                            onChange={(e) => setReminderDate(e.target.value)}
+                            className="w-full p-2 mt-2 bg-gray-700 rounded-lg border-2 border-gray-600 focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                            onClick={generateIcs}
+                            className="mt-2 p-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition-colors"
+                        >
+                            Create Reminder File
+                        </button>
+                    </div>
                 </div>
             );
         };
 
         // Component for the Familiars tab
-        const FamiliarsSection = ({ currentSheet, updateNestedField }) => {
+        const FamiliarsSection = ({ currentSheet, updateCharacterSheet }) => {
             const handleAddFamiliar = () => {
                 const newFamiliar = {
                     name: '',
                     type: 'animal',
                     notes: '',
+                    hp: '',
+                    ac: '',
+                    weapon: '',
+                    collapsed: false,
                 };
                 const newFamiliars = [...(currentSheet.familiars || []), newFamiliar];
-                updateNestedField('familiars', '', newFamiliars);
+                updateCharacterSheet('familiars', newFamiliars);
             };
 
             const handleUpdateFamiliar = (index, field, value) => {
                 const newFamiliars = [...(currentSheet.familiars || [])];
                 newFamiliars[index] = { ...newFamiliars[index], [field]: value };
-                updateNestedField('familiars', '', newFamiliars);
+                updateCharacterSheet('familiars', newFamiliars);
             };
             
             const handleDeleteFamiliar = (index) => {
                 const newFamiliars = (currentSheet.familiars || []).filter((_, i) => i !== index);
-                updateNestedField('familiars', '', newFamiliars);
+                updateCharacterSheet('familiars', newFamiliars);
             };
 
             return (
@@ -269,6 +328,7 @@
                                         placeholder="Familiar Name"
                                         value={familiar.name}
                                         onChange={(e) => handleUpdateFamiliar(index, 'name', e.target.value)}
+                                        onClick={() => handleUpdateFamiliar(index, 'collapsed', !familiar.collapsed)}
                                         className="p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 flex-grow"
                                     />
                                     <button
@@ -278,22 +338,166 @@
                                         <i className="fas fa-trash"></i>
                                     </button>
                                 </div>
-                                <select
-                                    value={familiar.type}
-                                    onChange={(e) => handleUpdateFamiliar(index, 'type', e.target.value)}
-                                    className="w-full p-2 mt-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="animal">Animal</option>
-                                    <option value="spirit">Spirit</option>
-                                    <option value="construct">Construct</option>
-                                    <option value="fey">Fey</option>
-                                </select>
-                                <textarea
-                                    placeholder="Notes about your familiar..."
-                                    value={familiar.notes}
-                                    onChange={(e) => handleUpdateFamiliar(index, 'notes', e.target.value)}
-                                    className="w-full h-24 mt-2 resize-none p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 custom-scrollbar"
-                                ></textarea>
+                                {!familiar.collapsed && (
+                                    <>
+                                        <div className="grid grid-cols-3 gap-2 mt-2">
+                                            <input
+                                                type="text"
+                                                placeholder="HP"
+                                                value={familiar.hp}
+                                                onChange={(e) => handleUpdateFamiliar(index, 'hp', e.target.value)}
+                                                className="p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="AC"
+                                                value={familiar.ac}
+                                                onChange={(e) => handleUpdateFamiliar(index, 'ac', e.target.value)}
+                                                className="p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Weapon"
+                                                value={familiar.weapon}
+                                                onChange={(e) => handleUpdateFamiliar(index, 'weapon', e.target.value)}
+                                                className="p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <select
+                                            value={familiar.type}
+                                            onChange={(e) => handleUpdateFamiliar(index, 'type', e.target.value)}
+                                            className="w-full p-2 mt-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                        >
+                                            <option value="animal">Animal</option>
+                                            <option value="spirit">Spirit</option>
+                                            <option value="construct">Construct</option>
+                                            <option value="fey">Fey</option>
+                                        </select>
+                                        <textarea
+                                            placeholder="Notes about your familiar..."
+                                            value={familiar.notes}
+                                            onChange={(e) => handleUpdateFamiliar(index, 'notes', e.target.value)}
+                                            className="w-full h-24 mt-2 resize-none p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 custom-scrollbar"
+                                        ></textarea>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+        
+        // Component for the Research tab
+        const ResearchSection = ({ currentSheet, updateCharacterSheet }) => {
+            const [allCollapsed, setAllCollapsed] = React.useState(false);
+
+            const handleAddResearch = () => {
+                const newResearch = {
+                    name: '',
+                    notes: '',
+                    progress: 0,
+                    completed: false,
+                    collapsed: false,
+                };
+                const newResearches = [...(currentSheet.research || []), newResearch];
+                updateCharacterSheet('research', newResearches);
+            };
+
+            const handleUpdateResearch = (index, field, value) => {
+                const newResearches = [...(currentSheet.research || [])];
+                newResearches[index] = { ...newResearches[index], [field]: value };
+                updateCharacterSheet('research', newResearches);
+            };
+            
+            const handleDeleteResearch = (index) => {
+                const newResearches = (currentSheet.research || []).filter((_, i) => i !== index);
+                updateCharacterSheet('research', newResearches);
+            };
+
+            const toggleAll = () => {
+                const newResearches = currentSheet.research.map(r => ({ ...r, collapsed: !allCollapsed }));
+                updateCharacterSheet('research', newResearches);
+                setAllCollapsed(!allCollapsed);
+            };
+
+            return (
+                <div className="bg-gray-800 p-4 rounded-xl shadow-lg flex-1 h-96 flex flex-col custom-scrollbar">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold">Research</h2>
+                        <button
+                            onClick={toggleAll}
+                            className="p-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md transition-colors"
+                        >
+                            {allCollapsed ? 'Expand All' : 'Collapse All'}
+                        </button>
+                    </div>
+                    <button
+                        onClick={handleAddResearch}
+                        className="mb-4 p-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition-colors"
+                    >
+                        Add New Research
+                    </button>
+                    <div className="space-y-4 flex-grow custom-scrollbar p-2 -m-2">
+                        {(currentSheet.research || []).map((research, index) => (
+                            <div key={index} className="bg-gray-700 p-4 rounded-lg shadow-inner">
+                                <div className="flex justify-between items-center mb-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Book/Research Name"
+                                        value={research.name}
+                                        onChange={(e) => handleUpdateResearch(index, 'name', e.target.value)}
+                                        className={`p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 flex-grow ${research.completed ? 'bg-green-900' : ''}`}
+                                    />
+                                    <div className="flex items-center">
+                                        <button
+                                            onClick={() => handleUpdateResearch(index, 'collapsed', !research.collapsed)}
+                                            className="ml-2 p-2 text-gray-400 hover:text-white transition-colors"
+                                        >
+                                            {research.collapsed ? <i className="fas fa-plus"></i> : <i className="fas fa-minus"></i>}
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteResearch(index)}
+                                            className="ml-2 p-2 text-red-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <i className="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {!research.collapsed && (
+                                    <>
+                                        <textarea
+                                            placeholder="Notes about what you've learned..."
+                                            value={research.notes}
+                                            onChange={(e) => handleUpdateResearch(index, 'notes', e.target.value)}
+                                            className="w-full h-24 mt-2 resize-none p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 custom-scrollbar"
+                                        ></textarea>
+                                        <div className="flex items-center space-x-2 mt-2">
+                                            <span className="font-semibold text-sm">Progress (%):</span>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={research.progress}
+                                                onChange={(e) => handleUpdateResearch(index, 'progress', parseInt(e.target.value) || 0)}
+                                                className="w-16 p-1 text-center bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                            />
+                                            <input
+                                                type="checkbox"
+                                                checked={research.completed}
+                                                onChange={(e) => handleUpdateResearch(index, 'completed', e.target.checked)}
+                                                className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                                            />
+                                             <span className="font-semibold text-sm">Completed</span>
+                                        </div>
+                                        <div className="w-full bg-gray-600 rounded-full h-4 mt-2">
+                                            <div
+                                                className="bg-blue-500 h-4 rounded-full transition-all duration-300"
+                                                style={{ width: `${research.progress}%` }}
+                                            ></div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -302,31 +506,74 @@
         };
         
         // Component for the Projects tab
-        const ProjectsSection = ({ currentSheet, updateNestedField }) => {
+        const ProjectsSection = ({ currentSheet, updateCharacterSheet }) => {
+            const projectCategories = ['Cooking', 'Blacksmithing', 'Woodworking', 'Other'];
+
             const handleAddProject = () => {
                 const newProject = {
                     name: '',
                     description: '',
                     progress: 0,
+                    category: 'Other',
+                    materials: [],
                 };
                 const newProjects = [...(currentSheet.projects || []), newProject];
-                updateNestedField('projects', '', newProjects);
+                updateCharacterSheet('projects', newProjects);
             };
 
             const handleUpdateProject = (index, field, value) => {
                 const newProjects = [...(currentSheet.projects || [])];
                 newProjects[index] = { ...newProjects[index], [field]: value };
-                updateNestedField('projects', '', newProjects);
+                updateCharacterSheet('projects', newProjects);
             };
             
             const handleDeleteProject = (index) => {
                 const newProjects = (currentSheet.projects || []).filter((_, i) => i !== index);
-                updateNestedField('projects', '', newProjects);
+                updateCharacterSheet('projects', newProjects);
+            };
+
+            const handleMaterialChange = (projectIndex, materialIndex, field, value) => {
+                const newProjects = [...(currentSheet.projects || [])];
+                const materials = [...(newProjects[projectIndex].materials || [])];
+                materials[materialIndex] = { ...materials[materialIndex], [field]: value };
+                newProjects[projectIndex] = { ...newProjects[projectIndex], materials: materials };
+                updateCharacterSheet('projects', newProjects);
+            };
+
+            const handleAddMaterial = (projectIndex) => {
+                const newProjects = [...(currentSheet.projects || [])];
+                const materials = [...(newProjects[projectIndex].materials || [])];
+                materials.push({ name: '', have: 0, need: 1 });
+                newProjects[projectIndex] = { ...newProjects[projectIndex], materials: materials };
+                updateCharacterSheet('projects', newProjects);
+            };
+
+            const handleDeleteMaterial = (projectIndex, materialIndex) => {
+                const newProjects = [...(currentSheet.projects || [])];
+                const materials = (newProjects[projectIndex].materials || []).filter((_, i) => i !== materialIndex);
+                newProjects[projectIndex] = { ...newProjects[projectIndex], materials: materials };
+                updateCharacterSheet('projects', newProjects);
+            };
+
+            const handleCompleteProject = (projectIndex) => {
+                const project = currentSheet.projects[projectIndex];
+                if (project.progress >= 100) {
+                    // Add to inventory
+                    const newItem = {
+                        name: project.name,
+                        description: project.description,
+                    };
+                    const newInventoryItems = [...(currentSheet.inventoryItems || []), newItem];
+                    updateCharacterSheet('inventoryItems', newInventoryItems);
+
+                    // Remove from projects
+                    handleDeleteProject(projectIndex);
+                }
             };
 
             return (
                 <div className="bg-gray-800 p-4 rounded-xl shadow-lg flex-1 h-96 flex flex-col custom-scrollbar">
-                    <h2 className="text-xl font-bold mb-3">Projects</h2>
+                    <h2 className="text-xl font-bold mb-3">Crafting & Projects</h2>
                     <button
                         onClick={handleAddProject}
                         className="mb-4 p-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition-colors"
@@ -351,6 +598,13 @@
                                         <i className="fas fa-trash"></i>
                                     </button>
                                 </div>
+                                <select
+                                    value={project.category}
+                                    onChange={(e) => handleUpdateProject(index, 'category', e.target.value)}
+                                    className="w-full p-2 mt-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                >
+                                    {projectCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
                                 <textarea
                                     placeholder="Project description..."
                                     value={project.description}
@@ -367,13 +621,64 @@
                                         onChange={(e) => handleUpdateProject(index, 'progress', parseInt(e.target.value) || 0)}
                                         className="w-16 p-1 text-center bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
                                     />
-                                    <div className="w-full bg-gray-600 rounded-full h-2.5">
-                                        <div
-                                            className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
-                                            style={{ width: `${project.progress}%` }}
-                                        ></div>
-                                    </div>
+                                    <button
+                                        onClick={() => handleCompleteProject(index)}
+                                        disabled={project.progress < 100}
+                                        className="p-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-md transition-colors disabled:bg-gray-500"
+                                    >
+                                        Complete
+                                    </button>
                                 </div>
+                                <div className="w-full bg-gray-600 rounded-full h-4 mt-2">
+                                    <div
+                                        className="bg-blue-500 h-4 rounded-full transition-all duration-300"
+                                        style={{ width: `${project.progress}%` }}
+                                    ></div>
+                                </div>
+
+                                {project.category === 'Blacksmithing' && (
+                                    <div className="mt-4">
+                                        <h4 className="text-lg font-semibold mb-2">Materials</h4>
+                                        <div className="space-y-2">
+                                            {(project.materials || []).map((material, matIndex) => (
+                                                <div key={matIndex} className="flex items-center space-x-2">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Material Name"
+                                                        value={material.name}
+                                                        onChange={(e) => handleMaterialChange(index, matIndex, 'name', e.target.value)}
+                                                        className="p-1 bg-gray-800 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 flex-grow"
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        value={material.have}
+                                                        onChange={(e) => handleMaterialChange(index, matIndex, 'have', parseInt(e.target.value) || 0)}
+                                                        className="w-16 p-1 text-center bg-gray-800 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                                    />
+                                                    <span>/</span>
+                                                    <input
+                                                        type="number"
+                                                        value={material.need}
+                                                        onChange={(e) => handleMaterialChange(index, matIndex, 'need', parseInt(e.target.value) || 0)}
+                                                        className="w-16 p-1 text-center bg-gray-800 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleDeleteMaterial(index, matIndex)}
+                                                        className="p-1 text-red-400 hover:text-red-500 transition-colors"
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button
+                                            onClick={() => handleAddMaterial(index)}
+                                            className="mt-2 p-1 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition-colors"
+                                        >
+                                            Add Material
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -403,8 +708,20 @@
                 updateCharacterSheet('armorText', value);
             };
 
-            const handleInventoryItemsChange = (value) => {
-                updateCharacterSheet('inventoryItems', value);
+            const handleInventoryItemChange = (index, field, value) => {
+                const newInventoryItems = [...(currentSheet.inventoryItems || [])];
+                newInventoryItems[index] = { ...newInventoryItems[index], [field]: value };
+                updateCharacterSheet('inventoryItems', newInventoryItems);
+            };
+
+            const handleAddInventoryItem = () => {
+                const newInventoryItems = [...(currentSheet.inventoryItems || []), { name: '', description: '' }];
+                updateCharacterSheet('inventoryItems', newInventoryItems);
+            };
+
+            const handleDeleteInventoryItem = (index) => {
+                const newInventoryItems = (currentSheet.inventoryItems || []).filter((_, i) => i !== index);
+                updateCharacterSheet('inventoryItems', newInventoryItems);
             };
 
             const handleLandChange = (value) => {
@@ -574,12 +891,39 @@
                         {/* Inventory */}
                         <div className="bg-gray-800 p-4 rounded-xl shadow-lg h-full flex flex-col">
                             <h2 className="text-xl font-bold mb-3">General Inventory</h2>
-                            <textarea
-                                className="flex-grow resize-none p-2 bg-gray-700 rounded-lg border-2 border-gray-600 focus:outline-none focus:border-blue-500 custom-scrollbar"
-                                placeholder="List your other inventory items here..."
-                                value={currentSheet.inventoryItems || ''}
-                                onChange={(e) => handleInventoryItemsChange(e.target.value)}
-                            ></textarea>
+                            <button
+                                onClick={handleAddInventoryItem}
+                                className="mb-2 p-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition-colors"
+                            >
+                                Add Item
+                            </button>
+                            <div className="space-y-2 flex-grow custom-scrollbar p-2 -m-2">
+                                {(currentSheet.inventoryItems || []).map((item, index) => (
+                                    <div key={index} className="bg-gray-700 p-2 rounded-lg">
+                                        <div className="flex items-center">
+                                            <input
+                                                type="text"
+                                                placeholder="Item Name"
+                                                value={item.name}
+                                                onChange={(e) => handleInventoryItemChange(index, 'name', e.target.value)}
+                                                className="p-1 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 flex-grow"
+                                            />
+                                            <button
+                                                onClick={() => handleDeleteInventoryItem(index)}
+                                                className="ml-2 p-1 text-red-400 hover:text-red-500 transition-colors"
+                                            >
+                                                <i className="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <textarea
+                                            placeholder="Item description..."
+                                            value={item.description}
+                                            onChange={(e) => handleInventoryItemChange(index, 'description', e.target.value)}
+                                            className="w-full h-16 mt-2 resize-none p-1 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 custom-scrollbar"
+                                        ></textarea>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         {/* Land */}
                         <div className="bg-gray-800 p-4 rounded-xl shadow-lg flex-1">
@@ -1058,7 +1402,7 @@
                     armorText: '',
                     currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
                     weapons: [],
-                    inventoryItems: '',
+                    inventoryItems: [],
                     land: '',
                     notes: '',
                     calendarNotes: '', // Added calendar notes
@@ -1067,6 +1411,7 @@
                     spellSlots: {},
                     spellLists: {},
                     familiars: [],
+                    research: [],
                     projects: [],
                 };
                 return newCharacter;
@@ -1125,8 +1470,7 @@
 
             const handleResetCharacter = () => {
                 const id = currentSheet.id;
-                const name = currentSheet.characterInfo.name;
-                const freshSheet = createNewCharacter(name);
+                const freshSheet = createNewCharacter('New Character');
                 setAllCharacters(prev => ({
                     ...prev,
                     [id]: freshSheet,
@@ -1189,7 +1533,9 @@
                         return <SpellsSection {...commonProps} />;
                     case 'Familiars':
                         return <FamiliarsSection {...commonProps} />;
-                    case 'Projects':
+                    case 'Research':
+                        return <ResearchSection {...commonProps} />;
+                    case 'Crafting & Projects':
                         return <ProjectsSection {...commonProps} />;
                     case 'Character Sheets':
                         return (
@@ -1207,7 +1553,7 @@
             };
             
             // Available tabs for the navigation bar
-            const tabs = ['Character Info', 'Skills', 'Inventory', 'Spells', 'Notes', 'Calendar', 'Familiars', 'Projects', 'Character Sheets'];
+            const tabs = ['Character Info', 'Skills', 'Inventory', 'Spells', 'Notes', 'Calendar', 'Familiars', 'Research', 'Crafting & Projects', 'Character Sheets'];
 
             return (
                 <div className="bg-gray-900 text-white min-h-screen">
