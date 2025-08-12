@@ -391,6 +391,7 @@
         // Component for the Research tab
         const ResearchSection = ({ currentSheet, updateCharacterSheet }) => {
             const [allCollapsed, setAllCollapsed] = React.useState(false);
+            const [completedCollapsed, setCompletedCollapsed] = React.useState(true);
 
             const handleAddResearch = () => {
                 const newResearch = {
@@ -421,6 +422,9 @@
                 setAllCollapsed(!allCollapsed);
             };
 
+            const inProgressResearch = (currentSheet.research || []).filter(r => !r.completed);
+            const completedResearch = (currentSheet.research || []).filter(r => r.completed);
+
             return (
                 <div className="bg-gray-800 p-4 rounded-xl shadow-lg flex-1 h-96 flex flex-col custom-scrollbar">
                     <div className="flex justify-between items-center mb-4">
@@ -439,7 +443,7 @@
                         Add New Research
                     </button>
                     <div className="space-y-4 flex-grow custom-scrollbar p-2 -m-2">
-                        {(currentSheet.research || []).map((research, index) => (
+                        {inProgressResearch.map((research, index) => (
                             <div key={index} className="bg-gray-700 p-4 rounded-lg shadow-inner">
                                 <div className="flex justify-between items-center mb-2">
                                     <input
@@ -500,6 +504,76 @@
                                 )}
                             </div>
                         ))}
+                    </div>
+                    <div className="mt-4">
+                        <h3 className="text-lg font-bold mb-2 cursor-pointer" onClick={() => setCompletedCollapsed(!completedCollapsed)}>
+                            Completed Research {completedCollapsed ? <i className="fas fa-plus"></i> : <i className="fas fa-minus"></i>}
+                        </h3>
+                        {!completedCollapsed && (
+                            <div className="space-y-4 flex-grow custom-scrollbar p-2 -m-2">
+                                {completedResearch.map((research, index) => (
+                                    <div key={index} className="bg-gray-700 p-4 rounded-lg shadow-inner">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Book/Research Name"
+                                                value={research.name}
+                                                onChange={(e) => handleUpdateResearch(index, 'name', e.target.value)}
+                                                className={`p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 flex-grow ${research.completed ? 'bg-green-900' : ''}`}
+                                            />
+                                            <div className="flex items-center">
+                                                <button
+                                                    onClick={() => handleUpdateResearch(index, 'collapsed', !research.collapsed)}
+                                                    className="ml-2 p-2 text-gray-400 hover:text-white transition-colors"
+                                                >
+                                                    {research.collapsed ? <i className="fas fa-plus"></i> : <i className="fas fa-minus"></i>}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteResearch(index)}
+                                                    className="ml-2 p-2 text-red-400 hover:text-red-500 transition-colors"
+                                                >
+                                                    <i className="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {!research.collapsed && (
+                                            <>
+                                                <textarea
+                                                    placeholder="Notes about what you've learned..."
+                                                    value={research.notes}
+                                                    onChange={(e) => handleUpdateResearch(index, 'notes', e.target.value)}
+                                                    className="w-full h-24 mt-2 resize-none p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 custom-scrollbar"
+                                                ></textarea>
+                                                <div className="flex items-center space-x-2 mt-2">
+                                                    <span className="font-semibold text-sm">Progress (%):</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        value={research.progress}
+                                                        onChange={(e) => handleUpdateResearch(index, 'progress', parseInt(e.target.value) || 0)}
+                                                        className="w-16 p-1 text-center bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
+                                                    />
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={research.completed}
+                                                        onChange={(e) => handleUpdateResearch(index, 'completed', e.target.checked)}
+                                                        className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                                                    />
+                                                     <span className="font-semibold text-sm">Completed</span>
+                                                </div>
+                                                <div className="w-full bg-gray-600 rounded-full h-4 mt-2">
+                                                    <div
+                                                        className="bg-blue-500 h-4 rounded-full transition-all duration-300"
+                                                        style={{ width: `${research.progress}%` }}
+                                                    ></div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -694,6 +768,16 @@
                 updateCharacterSheet('weapons', newWeapons);
             };
 
+            const handleAddWeapon = () => {
+                const newWeapons = [...(currentSheet.weapons || []), { name: '', damageDice: '', abilityScore: '', hasAmmo: false, ammoCount: 0 }];
+                updateCharacterSheet('weapons', newWeapons);
+            };
+
+            const handleDeleteWeapon = (index) => {
+                const newWeapons = (currentSheet.weapons || []).filter((_, i) => i !== index);
+                updateCharacterSheet('weapons', newWeapons);
+            };
+
             const handleCurrencyChange = (key, value) => {
                 const numericValue = value === '' ? '' : parseInt(value) || 0;
                 updateNestedField('currency', key, numericValue);
@@ -747,11 +831,17 @@
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Weapons Section */}
                     <div className="bg-gray-800 p-4 rounded-xl shadow-lg flex-1 md:col-span-2">
-                        <h2 className="text-xl font-bold mb-3">Weapons</h2>
+                        <div className="flex justify-between items-center mb-3">
+                            <h2 className="text-xl font-bold">Weapons</h2>
+                            <button
+                                onClick={handleAddWeapon}
+                                className="p-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition-colors"
+                            >
+                                Add Weapon
+                            </button>
+                        </div>
                         <div className="space-y-4">
-                            {[0, 1, 2].map((index) => {
-                                const weapon = currentSheet.weapons?.[index] || {};
-                                return (
+                            {(currentSheet.weapons || []).map((weapon, index) => (
                                 <div key={index} className="p-3 bg-gray-700 rounded-lg">
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                                         <input
@@ -793,6 +883,12 @@
                                                     className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
                                                 />
                                                 <span className="text-sm whitespace-nowrap">Has Ammo</span>
+                                                <button
+                                                    onClick={() => handleDeleteWeapon(index)}
+                                                    className="ml-2 p-1 text-red-400 hover:text-red-500 transition-colors"
+                                                >
+                                                    <i className="fas fa-trash"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -808,7 +904,7 @@
                                         </div>
                                     )}
                                 </div>
-                            )})}
+                            ))}
                         </div>
                     </div>
 
@@ -1343,10 +1439,10 @@
         };
 
         const CharacterSheet = () => {
-            // Local Storage Key
+            // Local Storage Key for saving/loading character data.
             const LOCAL_STORAGE_KEY = 'dndCompanionApp';
 
-            // State for all character data
+            // Main state for all characters, loaded from local storage.
             const [allCharacters, setAllCharacters] = React.useState(() => {
                 const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
                 if (storedData) {
@@ -1356,7 +1452,7 @@
                 return {};
             });
 
-            // State for the ID of the active character
+            // State for the ID of the currently active character.
             const [activeCharacterId, setActiveCharacterId] = React.useState(() => {
                 const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
                 if (storedData) {
@@ -1366,10 +1462,12 @@
                 return null;
             });
 
+            // State for the currently active tab.
             const [activeTab, setActiveTab] = React.useState('Character Info');
+            // State for showing/hiding the reset character confirmation modal.
             const [showResetModal, setShowResetModal] = React.useState(false);
             
-            // Effect to save all data to local storage whenever it changes
+            // Effect to save all character data to local storage whenever it changes.
             React.useEffect(() => {
                 const dataToSave = {
                     characters: allCharacters,
@@ -1378,7 +1476,21 @@
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
             }, [allCharacters, activeCharacterId]);
 
-            // Helper function to create a new character sheet with a unique ID
+            /**
+             * A generic function to update the currently active character's sheet.
+             * @param {function} updater - A function that receives the current character data and returns the updated character data.
+             */
+            const updateCharacter = (updater) => {
+                setAllCharacters(prev => {
+                    const newCharacters = { ...prev };
+                    const currentCharacter = { ...newCharacters[activeCharacterId] };
+                    const updatedCharacter = updater(currentCharacter);
+                    newCharacters[activeCharacterId] = updatedCharacter;
+                    return newCharacters;
+                });
+            };
+
+            // Helper function to create a new, blank character sheet.
             const createNewCharacter = (name) => {
                 const newId = Date.now().toString(); // Simple unique ID
                 const newCharacter = {
@@ -1417,7 +1529,7 @@
                 return newCharacter;
             };
 
-            // Initialize a default character if none exist
+            // Initialize a default character if no characters exist in local storage.
             React.useEffect(() => {
                 if (Object.keys(allCharacters).length === 0) {
                     const defaultCharacter = createNewCharacter('My First Character');
@@ -1426,7 +1538,7 @@
                 }
             }, []);
 
-            // Function to add a new character
+            // Function to add a new character to the state.
             const addCharacter = (name) => {
                 const newCharacter = createNewCharacter(name);
                 setAllCharacters(prev => ({
@@ -1436,7 +1548,7 @@
                 setActiveCharacterId(newCharacter.id);
             };
 
-            // Function to remove a character
+            // Function to remove a character from the state.
             const removeCharacter = (idToRemove) => {
                 setAllCharacters(prev => {
                     const newCharacters = { ...prev };
@@ -1461,13 +1573,13 @@
             // Get the current character sheet data based on the activeCharacterId
             const currentSheet = activeCharacterId ? allCharacters[activeCharacterId] : null;
 
-            // Handle cases where the active character ID doesn't exist
+            // Handle cases where the active character ID doesn't exist (e.g., after deletion).
             if (!currentSheet) {
-                // This handles cases like a character being deleted.
-                // It will be re-rendered by the useEffect hook above.
+                // This will be re-rendered by the useEffect hook above.
                 return <div className="text-center text-gray-400 mt-10">Loading character data...</div>;
             }
 
+            // Function to reset the current character to a blank sheet.
             const handleResetCharacter = () => {
                 const id = currentSheet.id;
                 const freshSheet = createNewCharacter('New Character');
@@ -1477,44 +1589,17 @@
                 }));
                 setShowResetModal(false);
             };
-
-            // A generic update function for the current sheet
-            const updateCharacterSheet = (field, value) => {
-                setAllCharacters(prev => ({
-                    ...prev,
-                    [activeCharacterId]: {
-                        ...prev[activeCharacterId],
-                        [field]: value,
-                    },
-                }));
-            };
             
-            // Generic update function for nested fields (e.g. currency)
-            const updateNestedField = (parentField, key, value) => {
-                setAllCharacters(prev => ({
-                    ...prev,
-                    [activeCharacterId]: {
-                        ...prev[activeCharacterId],
-                        [parentField]: {
-                            ...prev[activeCharacterId][parentField],
-                            [key]: value,
-                        },
-                    },
-                }));
-            };
-            
-            // Calculation functions
+            // Helper function to calculate the ability score modifier.
             const calculateModifier = (abilityScore) => {
                 return Math.floor((abilityScore - 10) / 2);
             };
             
-            // Tab content rendering based on the active tab state.
+            // Renders the content of the currently active tab.
             const renderTabContent = () => {
                 const commonProps = {
                     currentSheet,
-                    updateCharacterSheet,
-                    updateNestedField,
-                    proficiencyBonus: currentSheet.proficiencyBonus,
+                    updateCharacter: updateCharacter,
                     calculateModifier
                 };
 
@@ -1552,7 +1637,7 @@
                 }
             };
             
-            // Available tabs for the navigation bar
+            // An array of all available tabs for the navigation bar.
             const tabs = ['Character Info', 'Skills', 'Inventory', 'Spells', 'Notes', 'Calendar', 'Familiars', 'Research', 'Crafting & Projects', 'Character Sheets'];
 
             return (
@@ -1613,7 +1698,39 @@
         const container = document.getElementById('root');
         if (container) {
             const root = ReactDOM.createRoot(container);
-            root.render(<CharacterSheet />);
+            root.render(
+                <ErrorBoundary>
+                    <CharacterSheet />
+                </ErrorBoundary>
+            );
+        }
+
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false };
+            }
+
+            static getDerivedStateFromError(error) {
+                return { hasError: true };
+            }
+
+            componentDidCatch(error, errorInfo) {
+                console.error("Uncaught error:", error, errorInfo);
+            }
+
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="text-red-500 text-center p-4">
+                            <h2 className="text-2xl font-bold">Something went wrong.</h2>
+                            <p>Please refresh the page to continue.</p>
+                        </div>
+                    );
+                }
+
+                return this.props.children;
+            }
         }
     </script>
 </body>
