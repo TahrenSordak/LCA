@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DND Light Companion App</title>
+    <title>RPG Light Companion App</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome for dice icons -->
@@ -162,9 +162,7 @@
                         {Object.entries(allCharacters).map(([id, character]) => (
                             <div
                                 key={id}
-                                className={`flex justify-between items-center p-3 rounded-lg transition-colors cursor-pointer ${
-                                    id === activeCharacterId ? 'bg-blue-500 shadow-md' : 'bg-gray-700 hover:bg-gray-600'
-                                }`}
+                                className={`flex justify-between items-center p-3 rounded-lg transition-colors cursor-pointer ${ id === activeCharacterId ? 'bg-blue-500 shadow-md' : 'bg-gray-700 hover:bg-gray-600'}`}
                                 onClick={() => setActiveCharacterId(id)}
                             >
                                 <span className={`font-semibold ${id === activeCharacterId ? 'text-white' : ''}`}>
@@ -176,9 +174,7 @@
                                             e.stopPropagation(); // Prevent activating the character sheet
                                             handleRemoveCharacter(id);
                                         }}
-                                        className={`ml-2 p-1 rounded-full ${
-                                            id === activeCharacterId ? 'text-white hover:bg-blue-600' : 'text-gray-400 hover:text-red-400'
-                                        } transition-colors`}
+                                        className={`ml-2 p-1 rounded-full ${ id === activeCharacterId ? 'text-white hover:bg-blue-600' : 'text-gray-400 hover:text-red-400' } transition-colors`}
                                     >
                                         <i className="fas fa-trash"></i>
                                     </button>
@@ -655,7 +651,8 @@
                                                         onChange={(e) => handleMaterialChange(index, matIndex, 'have', parseInt(e.target.value) || 0)}
                                                         className="w-16 p-1 text-center bg-gray-800 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500"
                                                     />
-                                                    <span>/</span>
+                                                    <span>/
+                                                    </span>
                                                     <input
                                                         type="number"
                                                         value={material.need}
@@ -808,7 +805,8 @@
                                         </div>
                                     )}
                                 </div>
-                            )})}
+                            )})
+                        }
                         </div>
                     </div>
 
@@ -1081,7 +1079,8 @@
                                                     className="w-10 p-1 text-center bg-gray-800 rounded-lg text-xs"
                                                 />
                                             </div>
-                                            <span className="text-xs">/</span>
+                                            <span className="text-xs">/
+                                            </span>
                                             <div className="flex items-center space-x-1">
                                                 <label className="text-xs">Total:</label>
                                                 <input
@@ -1181,6 +1180,56 @@
                             </div>
                         ))}
                     </div>
+                </div>
+            );
+        };
+
+        // A component for the Feats tab
+        const FeatsSection = ({ currentSheet, updateCharacterSheet }) => {
+            const handleAddFeat = () => {
+                const newFeats = [...(currentSheet.feats || []), ''];
+                updateCharacterSheet('feats', newFeats);
+            };
+
+            const handleUpdateFeat = (index, value) => {
+                const newFeats = [...(currentSheet.feats || [])];
+                newFeats[index] = value;
+                updateCharacterSheet('feats', newFeats);
+            };
+
+            const handleDeleteFeat = (index) => {
+                const newFeats = (currentSheet.feats || []).filter((_, i) => i !== index);
+                updateCharacterSheet('feats', newFeats);
+            };
+
+            return (
+                <div className="bg-gray-700 p-4 rounded-xl shadow-inner flex flex-col">
+                    <h3 className="text-lg font-bold mb-2">Feats</h3>
+                    <div className="space-y-2">
+                        {(currentSheet.feats || []).map((feat, index) => (
+                            <div key={index} className="flex items-center">
+                                <input
+                                    type="text"
+                                    placeholder="Feat description..."
+                                    value={feat}
+                                    onChange={(e) => handleUpdateFeat(index, e.target.value)}
+                                    className="p-2 bg-gray-600 rounded-lg border-2 border-gray-500 focus:outline-none focus:border-blue-500 flex-grow"
+                                />
+                                <button
+                                    onClick={() => handleDeleteFeat(index)}
+                                    className="ml-2 p-2 text-red-400 hover:text-red-500 transition-colors"
+                                >
+                                    <i className="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        onClick={handleAddFeat}
+                        className="mt-2 p-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition-colors"
+                    >
+                        Add Feat
+                    </button>
                 </div>
             );
         };
@@ -1337,6 +1386,10 @@
                                 ))}
                             </div>
                         </div>
+                        {/* Feats Section */}
+                        <div className="lg:col-span-3">
+                            <FeatsSection currentSheet={currentSheet} updateCharacterSheet={updateCharacterSheet} />
+                        </div>
                     </div>
                 </div>
             );
@@ -1407,6 +1460,7 @@
                     notes: '',
                     calendarNotes: '', // Added calendar notes
                     skills: {}, // Added skills object
+                    feats: [], // Added feats array
                     spellcastingAbility: 'intelligence',
                     spellSlots: {},
                     spellLists: {},
@@ -1580,11 +1634,7 @@
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
-                                        className={`flex-1 py-2 px-4 rounded-lg font-bold whitespace-nowrap transition-colors ${
-                                            activeTab === tab
-                                                ? 'bg-blue-500 text-white shadow-md'
-                                                : 'bg-transparent text-gray-500 hover:bg-gray-700'
-                                        }`}
+                                        className={`flex-1 py-2 px-4 rounded-lg font-bold whitespace-nowrap transition-colors ${ activeTab === tab ? 'bg-blue-500 text-white shadow-md' : 'bg-transparent text-gray-500 hover:bg-gray-700'}`}
                                     >
                                         {tab}
                                     </button>
